@@ -16,7 +16,7 @@ from ella.core import custom_urls
 from ella.core.conf import core_settings
 from ella.core.signals import object_rendering, object_rendered
 from ella.api import render_as_api
-from ella.utils.timezone import now, utc_localize
+from ella.utils.timezone import now, localize
 
 __docformat__ = "restructuredtext en"
 
@@ -39,7 +39,7 @@ class AuthorView(ListView):
         if 'p' in request.GET:
             self.kwargs.update({'page': request.GET['p']})
 
-        self.author = get_cached_object(Author, slug=kwargs['slug'])
+        self.author = get_cached_object_or_404(Author, slug=kwargs['slug'])
 
         response = render_as_api(request, self.author)
         if response:
@@ -166,7 +166,6 @@ class ObjectDetail(EllaCoreView):
         return self.render(request, context, self.get_templates(context))
 
     def get_context(self, request, category, slug, year, month, day, id):
-
         try:
             cat = Category.objects.get_by_tree_path(category)
         except Category.DoesNotExist:
@@ -177,10 +176,12 @@ class ObjectDetail(EllaCoreView):
                 cat = None
 
         if year:
+            start_date = localize(datetime(int(year), int(month), int(day)))
+            end_date = start_date + timedelta(days=1)
+
             lookup = {
-                'publish_from__year': year,
-                'publish_from__month': month,
-                'publish_from__day': day,
+                'publish_from__gte': start_date,
+                'publish_from__lt': end_date,
                 'category': cat,
                 'slug': slug,
                 'static': False
@@ -192,7 +193,10 @@ class ObjectDetail(EllaCoreView):
                 # objects with same URL.
                 if request.user.is_staff:
                     try:
-                        publishable = Publishable.objects.filter(published=False, **lookup)[0]
+                        # Make sure we return specific publishable subclass
+                        # like when using `get_cached_object` if possible.
+                        p = Publishable.objects.filter(published=False, **lookup)[0]
+                        publishable = p.content_type.model_class()._default_manager.get(pk=p.pk)
                     except IndexError:
                         raise Http404
                 else:
@@ -218,11 +222,11 @@ class ObjectDetail(EllaCoreView):
         publishable.category = cat
 
         context = {
-                'object' : publishable,
-                'category' : cat,
-                'content_type_name' : slugify(publishable.content_type.model_class()._meta.verbose_name_plural),
-                'content_type' : publishable.content_type
-            }
+            'object': publishable,
+            'category': cat,
+            'content_type_name': slugify(publishable.content_type.model_class()._meta.verbose_name_plural),
+            'content_type': publishable.content_type
+        }
 
         return context
 
@@ -386,7 +390,7 @@ class ListContentType(EllaCoreView):
                 raise Http404(_('Invalid year value %r') % year)
 
         if 'date_range' in kwa:
-            kwa['date_range'] = tuple(map(utc_localize, kwa['date_range']))
+            kwa['date_range'] = tuple(map(localize, kwa['date_range']))
 
         # basic context
         context = {

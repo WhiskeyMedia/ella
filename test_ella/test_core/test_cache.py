@@ -1,5 +1,5 @@
 import time
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from django.core.cache import get_cache
 from ella.core.cache.utils import normalize_key
@@ -14,7 +14,7 @@ from ella.core.models import Listing, Publishable
 from ella.core.views import ListContentType
 from ella.core.managers import ListingHandler
 from ella.articles.models import Article
-from ella.utils.timezone import from_timestamp
+from ella.utils.timezone import from_timestamp, now
 
 from test_ella.test_core import create_basic_categories, create_and_place_a_publishable, \
         create_and_place_more_publishables, list_all_publishables_in_category_by_hour
@@ -129,6 +129,37 @@ class TestRedisListings(TestCase):
     def test_listing_gets_removed_when_publishable_goes_unpublished(self):
         list_all_publishables_in_category_by_hour(self)
         p = self.publishables[0]
+        p.published = False
+        p.save()
+        ct_id = p.content_type_id
+        tools.assert_equals(set([
+                'listing:2',
+                'listing:3',
+
+                'listing:c:1',
+                'listing:c:2',
+                'listing:c:3',
+
+                'listing:d:1',
+                'listing:d:2',
+                'listing:d:3',
+
+                'listing:ct:%d' % ct_id,
+            ]),
+            set(redis.client.keys())
+        )
+        tools.assert_equals(['%d:2' % ct_id, '%d:3' % ct_id], redis.client.zrange('listing:ct:%d' % ct_id, 0, 100))
+        tools.assert_equals(['%d:2' % ct_id, '%d:3' % ct_id], redis.client.zrange('listing:d:1', 0, 100))
+        tools.assert_equals(['%d:2' % ct_id], redis.client.zrange('listing:c:1', 0, 100))
+
+    def test_listing_gets_removed_when_publishable_marked_unpublished_even_if_not_published_yet(self):
+        future = now() + timedelta(days=1)
+
+        p = self.publishables[0]
+        p.publish_from = future
+        p.save()
+
+        list_all_publishables_in_category_by_hour(self)
         p.published = False
         p.save()
         ct_id = p.content_type_id
@@ -291,6 +322,7 @@ class TestRedisListings(TestCase):
                 [l.publishable for l in self.listings[offset:offset + count]]
             )
 
+
 class TestAuthorLH(TestCase):
     def setUp(self):
         from ella.core.models import Author
@@ -331,6 +363,57 @@ class TestAuthorLH(TestCase):
         )
         tools.assert_equals(['%d:1' % ct_id, '%d:2' % ct_id, '%d:3' % ct_id],
                             redis.client.zrange('listing:a:1', 0, 100))
+
+    def test_not_in_zsets_when_no_listings_present(self):
+        ct_id = self.publishables[0].content_type_id
+        tools.ok_('%d:1' % ct_id not in redis.client.zrange('listing:a:1', 0, 100))
+
+    def test_gets_removed_when_last_listing_is_deleted(self):
+        list_all_publishables_in_category_by_hour(self)
+        ct_id = self.publishables[0].content_type_id
+
+        while 1:
+            listings = self.publishables[0].listing_set.all()
+
+            if len(listings):
+                tools.ok_('%d:1' % ct_id in redis.client.zrange('listing:a:1', 0, 100))
+                listings[0].delete()
+            else:
+                tools.ok_('%d:1' % ct_id not in redis.client.zrange('listing:a:1', 0, 100))
+                break
+
+    def test_gets_added_when_first_listing_is_added(self):
+        ct_id = self.publishables[0].content_type_id
+        tools.ok_('%d:1' % ct_id not in redis.client.zrange('listing:a:1', 0, 100))
+
+        Listing.objects.get_or_create(
+            publishable=self.publishables[0],
+            category=self.publishables[0].category,
+            publish_from=self.publishables[0].publish_from,
+        )[0]
+
+        tools.ok_('%d:1' % ct_id in redis.client.zrange('listing:a:1', 0, 100))
+
+    def test_not_added_when_not_published(self):
+        ct_id = self.publishables[0].content_type_id
+
+        self.publishables[0].published = False
+        self.publishables[0].save()
+
+        list_all_publishables_in_category_by_hour(self)
+
+        tools.ok_('%d:1' % ct_id not in redis.client.zrange('listing:a:1', 0, 100))
+
+        self.publishables[0].published = True
+        self.publishables[0].save()
+
+        tools.ok_('%d:1' % ct_id in redis.client.zrange('listing:a:1', 0, 100))
+
+        self.publishables[0].published = False
+        self.publishables[0].save()
+
+        tools.ok_('%d:1' % ct_id not in redis.client.zrange('listing:a:1', 0, 100))
+
 
 class SlidingLH(redis.SlidingListingHandler):
     PREFIX = 'sliding'
