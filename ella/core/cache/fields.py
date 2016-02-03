@@ -10,7 +10,7 @@ from ella.core.cache.utils import get_cached_object
 def generate_fk_class(name, retrieve_func, limit_to_model=None):
     class CustomForeignKey(ForeignKey):
         def __init__(self, *args, **kwargs):
-            if limit_to_model:
+            if limit_to_model and 'to' not in kwargs:
                 args = (limit_to_model,) + args
             super(CustomForeignKey, self).__init__(*args, **kwargs)
 
