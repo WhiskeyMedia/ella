@@ -3,7 +3,8 @@ from operator import attrgetter
 from django.db import models
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.encoding import smart_str
-from django.db.models.loading import get_model
+from django.apps import apps
+get_model = apps.get_model
 from django.conf import settings
 
 from ella.core.cache import cache_this

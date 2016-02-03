@@ -15,7 +15,7 @@ from ella_newman.utils import JsonResponse
 from ella.positions.models import Position
 from ella.core.models import Category
 from django.forms.models import ModelForm
-from django.forms.util import ValidationError
+from django.core.exceptions import ValidationError
 
 class PositionForm(ModelForm):
 

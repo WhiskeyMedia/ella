@@ -1,5 +1,6 @@
+from importlib import import_module
+
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.importlib import import_module
 
 def import_module_member(modstr, noun=''):
     module, attr = modstr.rsplit('.', 1)

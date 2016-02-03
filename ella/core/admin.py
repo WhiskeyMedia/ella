@@ -8,6 +8,7 @@ from ella.core.models import Author, Source, Category, Listing, Related
 class ListingForm(modelforms.ModelForm):
     class Meta:
         model = Listing
+        fields = ['publishable', 'category', 'publish_from', 'publish_to', 'commercial']
 
 
 class ListingInlineAdmin(admin.TabularInline):

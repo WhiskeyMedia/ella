@@ -6,7 +6,8 @@ from hashlib import md5
 from itertools import chain
 
 from django.conf import settings
-from django.db.models.loading import get_model
+from django.apps import apps
+get_model = apps.get_model
 
 from ella.core.cache.utils import get_cached_objects, SKIP
 from ella.core.managers import ListingHandler

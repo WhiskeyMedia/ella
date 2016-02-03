@@ -1,7 +1,8 @@
+from importlib import import_module
+
 from django.dispatch import Signal
 from django.utils.itercompat import is_iterable
 from django.conf import settings
-from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 
 app_modules_loaded = Signal()

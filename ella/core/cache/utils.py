@@ -3,7 +3,8 @@ import logging
 
 from django.dispatch import receiver
 from django.db.models import ObjectDoesNotExist
-from django.db.models.loading import get_model
+from django.apps import apps
+get_model = apps.get_model
 from django.db.models.signals import post_save, post_delete
 from django.core.cache import cache
 from django.core.cache.backends.dummy import DummyCache

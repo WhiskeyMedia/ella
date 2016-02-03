@@ -3,7 +3,7 @@ import time
 
 from django.utils.translation import ugettext_lazy as _, ugettext
 from django.forms import models as modelforms
-from django.forms.util import ValidationError
+from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import date
 from django.conf import settings
