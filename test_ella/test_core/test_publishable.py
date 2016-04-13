@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from ella.core.models import Category, Publishable
 from ella.core import signals
 from ella.core.management import generate_publish_signals
+from ella.core.management import unpublish_publish_to_expirations
 from ella.utils import timezone
 
 from nose import tools, SkipTest
@@ -201,4 +202,13 @@ class TestSignals(TestCase):
         tools.assert_equals(1, len(self.publish_received))
         tools.assert_equals(0, len(self.unpublish_received))
         tools.assert_equals(self.publishable, self.publish_received[0]['publishable'].target)
+
+    def test_publish_to_unpublishes_at_time(self):
+        publish_to = timezone.now() - timedelta(hours=1)
+        self.publishable.publish_to = publish_to
+        self.publishable.published = True
+        self.publishable.save()
+        unpublish_publish_to_expirations(timezone.now())
+        tools.assert_equals(0, len(Publishable.objects.filter(published=True, publish_to=publish_to)))
+
 
