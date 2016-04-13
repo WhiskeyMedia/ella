@@ -208,6 +208,7 @@ class TestSignals(TestCase):
         self.publishable.publish_to = publish_to
         self.publishable.published = True
         self.publishable.save()
+        tools.assert_equals(1, len(Publishable.objects.filter(published=True, publish_to=publish_to)))
         unpublish_publish_to_expirations(timezone.now())
         tools.assert_equals(0, len(Publishable.objects.filter(published=True, publish_to=publish_to)))
 
