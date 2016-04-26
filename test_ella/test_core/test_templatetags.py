@@ -42,13 +42,14 @@ class TestPaginate(UnitTestCase):
             'page': page
         }
         paginated = _do_paginator(context, 2, None)
-        paginated[1]['query_params'] = parse_qs(paginated[1]['query_params'])
+        # remove the first '?' from the qs and parse it to a dict
+        paginated[1]['query_params'] = parse_qs(paginated[1]['query_params'][1:])
         tools.assert_equals(
             (
                 ('inclusion_tags/paginator.html', 'inc/paginator.html'), {
                     'page': page,
                     'page_numbers': [1, 2, 3, 4, 5],
-                    'query_params': parse_qs('?using=custom_lh&other=param+with+spaces&p='),
+                    'query_params': parse_qs('using=custom_lh&other=param+with+spaces&p='),
                     'results_per_page': 10,
                     'show_first': False,
                     'show_last': True
