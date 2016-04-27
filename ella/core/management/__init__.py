@@ -36,3 +36,12 @@ def regenerate_listing_handlers(today=None):
     Listing.objects.get_listing_handler('default')
     for lh in Listing.objects._listing_handlers.values():
         lh.regenerate(today)
+
+def unpublish_publish_to_expirations(now=None):
+    if now is None:
+        now = timezone.now()
+
+    pubs = Publishable.objects.filter(publish_to__lt=now, published=True)
+    for p in pubs:
+        p.published = False
+        p.save()
