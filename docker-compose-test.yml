@@ -3,6 +3,8 @@ redis:
   image: redis:latest
 
 tests:
+  environment:
+    - REDIS_HOST=redis
   build: .
   links:
     - redis:redis
