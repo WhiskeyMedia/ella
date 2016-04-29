@@ -20,9 +20,10 @@ from ella.articles.models import Article
 from ella.photos.models import Photo
 
 from test_ella.test_core import create_basic_categories, create_and_place_a_publishable, \
-        create_and_place_more_publishables, list_all_publishables_in_category_by_hour
+    create_and_place_more_publishables, list_all_publishables_in_category_by_hour
 from test_ella import template_loader
 from test_ella.cases import RedisTestCase as TestCase
+
 
 class TestPaginate(UnitTestCase):
     def setUp(self):
@@ -91,8 +92,6 @@ class TestPaginate(UnitTestCase):
         tools.assert_equals('1, 2, 3', t.render(template.Context({'page': page})))
 
 
-
-
 class TestRenderTag(UnitTestCase):
     def test_raises_error_on_no_args(self):
         t = '{% render %}'
@@ -117,11 +116,12 @@ class TestRenderTag(UnitTestCase):
 
     def test_renders_var_in_context(self):
         t = template.Template('{% render var %}')
-        tools.assert_equals('YYY', t.render(template.Context({'var': '{{ other_var }}', 'other_var' : 'YYY'})))
+        tools.assert_equals('YYY', t.render(template.Context({'var': '{{ other_var }}', 'other_var': 'YYY'})))
 
     def test_does_not_escape_output(self):
         t = template.Template('{% render var %}')
         tools.assert_equals('<html> ""', t.render(template.Context({'var': '<html> ""'})))
+
 
 class TestListingTag(TestCase):
     def setUp(self):
@@ -138,27 +138,34 @@ class TestListingTag(TestCase):
 
     def test_get_listing_with_immediate_children(self):
         t = template.Template('{% listing 10 for category with children as var %}{{ var|join:":" }}')
-        expected = ':'.join([str(listing) for listing in self.listings if listing.category in (self.category, self.category_nested)])
+        expected = ':'.join([
+            str(listing) for listing in self.listings
+            if listing.category in (self.category, self.category_nested)])
         tools.assert_equals(expected, t.render(template.Context({'category': self.category})))
 
     def test_get_listing_with_immediate_children_and_offset(self):
         t = template.Template('{% listing 10 from 2 for category with children as var %}{{ var|join:":" }}')
-        expected = ':'.join([str(listing) for listing in self.listings if listing.category in (self.category, self.category_nested)][1:])
+        expected = ':'.join([
+            str(listing) for listing in self.listings
+            if listing.category in (self.category, self.category_nested)][1:])
         tools.assert_equals(expected, t.render(template.Context({'category': self.category})))
 
     def test_get_listing_with_immediate_children_offset_and_count(self):
         t = template.Template('{% listing 1 from 2 for category with children as var %}{{ var|join:":" }}')
-        expected = [str(listing) for listing in self.listings if listing.category in (self.category, self.category_nested)][1]
+        expected = [
+            str(listing) for listing in self.listings
+            if listing.category in (self.category, self.category_nested)][1]
         tools.assert_equals(expected, t.render(template.Context({'category': self.category})))
 
     def test_get_listing_without_a_publishable(self):
         t = template.Template('{% listing 10 for category without p as var %}{{ var|join:":" }}')
         tools.assert_equals('', t.render(template.Context({'category': self.category, 'p': self.publishables[0]})))
 
+
 class TestListingTagParser(TestCase):
     '''
     {% listing <limit>[ from <offset>][of <app.model>[, <app.model>[, ...]]][ for <category> ] [with children|descendents] as <result> %}
-    '''
+    '''  # NOQA
 
     def setUp(self):
         self.act = ContentType.objects.get_for_model(Article)
@@ -190,7 +197,8 @@ class TestListingTagParser(TestCase):
         tools.assert_equals([self.act, self.pct], parameters['content_types'])
 
     def test_limit_bu_more_models_space_around_comma(self):
-        var_name, parameters = listing_parse(['listing', '1', 'of', 'articles.article', ',', 'photos.photo', 'as', 'var'])
+        var_name, parameters = listing_parse(
+            ['listing', '1', 'of', 'articles.article', ',', 'photos.photo', 'as', 'var'])
         tools.assert_equals([self.act, self.pct], parameters['content_types'])
 
     def test_limit_by_category(self):
@@ -208,9 +216,11 @@ class TestListingTagParser(TestCase):
         tools.assert_equals(ListingHandler.IMMEDIATE, parameters['children'])
 
     def test_ct_with_desc_using(self):
-        var_name, parameters = listing_parse("listing 10 of articles.article with descendents using 'most-viewed' as most_viewed_listings".split())
+        var_name, parameters = listing_parse(
+            "listing 10 of articles.article with descendents using 'most-viewed' as most_viewed_listings".split())
         tools.assert_equals(ListingHandler.ALL, parameters['children'])
         tools.assert_equals(Category.objects.get_by_tree_path(''), parameters['category'])
+
 
 class TestBoxTag(UnitTestCase):
 
@@ -229,7 +239,10 @@ class TestBoxTag(UnitTestCase):
                 level: 2
                 some_other_param: xxx
             {% endbox %}''')
-        tools.assert_equals('some_other_param:xxx|level:2|', t.render(template.Context()))
+        tools.assert_equals(
+            sorted(["some_other_param:xxx", "level:2", ""]),
+            sorted(t.render(template.Context()).split('|'))
+        )
 
     def test_box_wirks_with_variable_instead_of_lookup(self):
         site = Site.objects.get(pk=1)
@@ -241,6 +254,7 @@ class TestBoxTag(UnitTestCase):
         template_loader.templates['box/box.html'] = 'XXX'
         t = template.Template('{% box name for var %}{% endbox %}')
         tools.assert_equals('', t.render(template.Context({'var': None})))
+
 
 class TestBoxTagParser(UnitTestCase):
     def test_parse_box_with_pk(self):
@@ -264,15 +278,22 @@ class TestBoxTagParser(UnitTestCase):
         tools.assert_equals(('slug', 'home'), node.lookup)
 
     def test_parse_raises_on_too_many_arguments(self):
-        tools.assert_raises(TemplateSyntaxError, _parse_box, [], ['box', 'box_type', 'for', 'core.category', 'with', 'pk', '1', '2', 'extra'])
+        tools.assert_raises(
+            TemplateSyntaxError,
+            _parse_box,
+            [],
+            ['box', 'box_type', 'for', 'core.category', 'with', 'pk', '1', '2', 'extra'])
 
     def test_parse_raises_on_too_few_arguments(self):
         tools.assert_raises(TemplateSyntaxError, _parse_box, [], ['box', 'box_type', 'for'])
 
     def test_parse_raises_on_incorrect_arguments(self):
-        tools.assert_raises(TemplateSyntaxError, _parse_box, [], ['box', 'box_type', 'not a for', 'core.category', 'with', 'pk', '1'])
+        tools.assert_raises(
+            TemplateSyntaxError,
+            _parse_box,
+            [],
+            ['box', 'box_type', 'not a for', 'core.category', 'with', 'pk', '1'])
 
     def test_parse_return_empty_node_on_incorrect_model(self):
         node = _parse_box([], ['box', 'box_type', 'for', 'not_app.not_model', 'with', 'pk', '1'])
         tools.assert_true(isinstance(node, EmptyNode))
-
