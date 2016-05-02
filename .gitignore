@@ -19,3 +19,4 @@ nosetests.xml
 .idea
 .tox/*
 .eggs/
+wheelhouse/
