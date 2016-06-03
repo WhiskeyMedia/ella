@@ -196,6 +196,8 @@ class ObjectDetail(EllaCoreView):
                 if request.user.is_staff:
                     try:
                         publishable = Publishable.objects.filter(published=False, **lookup)[0]
+                        # want to get leaf class instance, not Publishable
+                        publishable = publishable.content_type.get_object_for_this_type(id=publishable.id)
                     except IndexError:
                         raise Http404
                 else:
