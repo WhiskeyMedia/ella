@@ -169,66 +169,96 @@ class ObjectDetail(EllaCoreView):
         return self.render(request, context, self.get_templates(context))
 
     def get_context(self, request, category, slug, year, month, day, id):
+        cat = self._get_category_from(category, year)
+        publishable = self._get_publishable_for(request, cat, slug, year, month, day, id)
+        self._verify_publishable(request, publishable, cat, category, year, slug)
+        # use existing Category object to preserve memory and SQL
+        publishable.category = cat
+        context = self._create_context_for(publishable=publishable, category=cat)
+        return context
 
+    def _get_category_from(self, cat_tree_path, year):
         try:
-            cat = Category.objects.get_by_tree_path(category)
+            cat = Category.objects.get_by_tree_path(cat_tree_path)
         except Category.DoesNotExist:
             # non-static url, no way to recover
             if year:
-                raise Http404("Category with tree_path '%s' doesn't exist." % category)
+                raise Http404("Category with tree_path '%s' doesn't exist." % cat_tree_path)
             else:
                 cat = None
+        return cat
 
+    def _get_publishable_for(self, request, category, slug, year, month, day, id):
         if year:
-            lookup = {
-                'publish_from__year': year,
-                'publish_from__month': month,
-                'publish_from__day': day,
-                'category': cat,
-                'slug': slug,
-                'static': False
-            }
-            try:
-                publishable = get_cached_object(Publishable, published=True, **lookup)
-            except Publishable.DoesNotExist:
-                # Fallback for staff members in case there are multiple
-                # objects with same URL.
-                if request.user.is_staff:
-                    try:
-                        publishable = Publishable.objects.filter(published=False, **lookup)[0]
-                        # want to get leaf class instance, not Publishable
-                        publishable = publishable.content_type.get_object_for_this_type(id=publishable.id)
-                    except IndexError:
-                        raise Http404
-                else:
-                    raise Http404
+            publishable = self._get_publishable_with_lookup(request, category, slug, year, month, day)
         else:
             publishable = get_cached_object_or_404(Publishable, pk=id)
+        return publishable
 
+    def _get_publishable_by_id(self, publishable_id):
+        return get_cached_object_or_404(Publishable, pk=publishable_id)
+
+    def _get_publishable_with_lookup(self, request, category, slug, year, month, day):
+        lookup = {
+            'publish_from__year': year,
+            'publish_from__month': month,
+            'publish_from__day': day,
+            'category': category,
+            'slug': slug,
+            'static': False
+        }
+        try:
+            publishable = get_cached_object(Publishable, published=True, **lookup)
+        except Publishable.DoesNotExist:
+            # Fallback for staff members in case there are multiple
+            # objects with same URL.
+            if request.user.is_staff:
+                try:
+                    publishable = Publishable.objects.filter(published=False, **lookup)[0]
+                    # want to get leaf class instance, not Publishable
+                    publishable = publishable.content_type.get_object_for_this_type(id=publishable.id)
+                except IndexError:
+                    raise Http404
+            else:
+                raise Http404
+        return publishable
+
+    def _verify_publishable(self, request, publishable, category, cat_tree_path, year, slug):
+        self._veriby_publishable_recipient(request, publishable)
+        if not year:
+            self._verify_publishable_time_based(publishable, category, cat_tree_path, slug)
+
+    def _verify_publishable_time_based(self, publishable, category, cat_tree_path, slug):
+        self._verify_publishable_category(publishable, category, cat_tree_path)
+        self._verify_publishable_static(publishable)
+        self._verify_publishable_slug(publishable, slug)
+
+    def _verify_publishable_category(self, publishable, category, cat_tree_path):
+        if category is None:
+            raise self.WrongUrl('Category with tree_path %r does not exist.' % cat_tree_path, publishable)
+        if publishable.category_id != category.pk:
+            raise self.WrongUrl('Wrong category for %s.' % publishable, publishable)
+
+    def _verify_publishable_static(self, publishable):
+        if not publishable.static:
+            raise self.WrongUrl('%s is not static.' % publishable, publishable)
+
+    def _verify_publishable_slug(self, publishable, slug):
+        if slug != publishable.slug:
+            raise self.WrongUrl('Wrong slug in URL (%r).' % slug, publishable)
+
+    def _veriby_publishable_recipient(self, reqest, publishable):
         if not (publishable.is_published() or request.user.is_staff):
             # future publish, render if accessed by logged in staff member
             raise Http404
 
-        if not year:
-            if cat is None:
-                raise self.WrongUrl('Category with tree_path %r does not exist.' % category, publishable)
-            elif not publishable.static:
-                raise self.WrongUrl('%s is not static.' % publishable, publishable)
-            elif slug != publishable.slug:
-                raise self.WrongUrl('Wrong slug in URL (%r).' % slug, publishable)
-            elif publishable.category_id != cat.pk:
-                raise self.WrongUrl('Wrong category for %s.' % publishable, publishable)
-
-        # save existing object to preserve memory and SQL
-        publishable.category = cat
-
+    def _create_context_for(self, publishable, category):
         context = {
                 'object' : publishable,
-                'category' : cat,
+                'category' : category,
                 'content_type_name' : slugify(publishable.content_type.model_class()._meta.verbose_name_plural),
                 'content_type' : publishable.content_type
-            }
-
+        }
         return context
 
 
