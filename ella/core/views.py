@@ -247,7 +247,7 @@ class ObjectDetail(EllaCoreView):
         if slug != publishable.slug:
             raise self.WrongUrl('Wrong slug in URL (%r).' % slug, publishable)
 
-    def _veriby_publishable_recipient(self, reqest, publishable):
+    def _veriby_publishable_recipient(self, request, publishable):
         if not (publishable.is_published() or request.user.is_staff):
             # future publish, render if accessed by logged in staff member
             raise Http404
