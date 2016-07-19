@@ -224,7 +224,7 @@ class ObjectDetail(EllaCoreView):
         return publishable
 
     def _verify_publishable(self, request, publishable, category, cat_tree_path, year, slug):
-        self._veriby_publishable_recipient(request, publishable)
+        self._verify_publishable_recipient(request, publishable)
         if not year:
             self._verify_publishable_time_based(publishable, category, cat_tree_path, slug)
 
@@ -247,7 +247,7 @@ class ObjectDetail(EllaCoreView):
         if slug != publishable.slug:
             raise self.WrongUrl('Wrong slug in URL (%r).' % slug, publishable)
 
-    def _veriby_publishable_recipient(self, request, publishable):
+    def _verify_publishable_recipient(self, request, publishable):
         if not (publishable.is_published() or request.user.is_staff):
             # future publish, render if accessed by logged in staff member
             raise Http404
