@@ -3,6 +3,7 @@ from datetime import timedelta, datetime
 import pytz
 
 from test_ella.cases import RedisTestCase as TestCase
+from django.conf import settings
 from django.contrib.sites.models import Site
 from django.contrib.redirects.models import Redirect
 from django.contrib.contenttypes.models import ContentType
@@ -48,6 +49,11 @@ class TestPublishableHelpers(PublishableTestCase):
         utc = pytz.timezone('UTC')
         self.publishable.publish_from = datetime(2008, 1, 9, 23, 50, 0, tzinfo=utc)
         tools.assert_equals('/nested-category/2008/1/10/first-article/', self.publishable.get_absolute_url())
+
+    def test_https_url(self):
+        settings.USE_HTTPS = True
+        tools.assert_equals('https://' + self.category.site.domain + '/nested-category/2008/1/10/first-article/',
+                            self.publishable.get_absolute_url(domain=True))
 
     def test_domain_url(self):
         tools.assert_equals('http://example.com/nested-category/2008/1/10/first-article/', self.publishable.get_domain_url())
@@ -127,6 +133,7 @@ class TestUrl(PublishableTestCase):
         self.publishable.publish_from = default_time
         self.publishable.save()
 
+        settings.USE_HTTPS = False
         tools.assert_equals(u'http://not-example.com/2008/1/10/first-article/', self.publishable.get_absolute_url())
 
     def test_unique_url_validation(self):
