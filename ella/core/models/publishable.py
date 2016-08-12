@@ -117,7 +117,7 @@ class Publishable(models.Model):
 
         if category.site_id != settings.SITE_ID or domain:
             protocol = 'http'
-            if getattr(settings, 'USE_HTTPS', False) == True:
+            if getattr(settings, 'USE_HTTPS', False):
                 protocol = 'https'
 
             return protocol + '://' + category.site.domain + url
