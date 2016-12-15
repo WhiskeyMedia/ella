@@ -70,7 +70,7 @@ class Formatter(object):
         if self.image_ratio < self.format_ratio:
             # image taller than format
             diff = ih - (iw * self.fh / self.fw)
-            return (0, 0 , iw, self.fh)
+            return (0, 0 , iw, ih - diff)
 
         elif self.image_ratio > self.format_ratio:
             # image wider than format
