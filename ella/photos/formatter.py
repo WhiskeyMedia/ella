@@ -1,3 +1,4 @@
+from django.conf import settings
 from PIL import Image
 
 from ella.photos.conf import photos_settings
@@ -68,9 +69,23 @@ class Formatter(object):
             return
 
         if self.image_ratio < self.format_ratio:
+            DISTILLERY_PREVIEW_MODULE = getattr(settings, 'DISTILLERY_PREVIEW_MODULE', None)
+            DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION = getattr(settings,
+                                                                   'DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION', None)
+
+            crop_box = ()
+            if DISTILLERY_PREVIEW_MODULE and DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION:
+                import importlib
+                app_functions = importlib.import_module(DISTILLERY_PREVIEW_MODULE)
+                crop_box = getattr(app_functions, DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION)(iw, ih, self.fw,
+                                                                                                self.fh)
+
             # image taller than format
             diff = ih - (iw * self.fh / self.fw)
-            return (0, 0 , iw, ih - diff)
+            if not crop_box:
+                crop_box = (0, diff // 2 , iw, ih - diff // 2)
+
+            return crop_box
 
         elif self.image_ratio > self.format_ratio:
             # image wider than format
