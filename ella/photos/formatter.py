@@ -73,19 +73,15 @@ class Formatter(object):
             DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION = getattr(settings,
                                                                    'DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION', None)
 
-            crop_box = ()
             if DISTILLERY_PREVIEW_MODULE and DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION:
                 import importlib
                 app_functions = importlib.import_module(DISTILLERY_PREVIEW_MODULE)
-                crop_box = getattr(app_functions, DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION)(iw, ih, self.fw,
+                return getattr(app_functions, DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION)(iw, ih, self.fw,
                                                                                                 self.fh)
 
             # image taller than format
             diff = ih - (iw * self.fh / self.fw)
-            if not crop_box:
-                crop_box = (0, diff // 2 , iw, ih - diff // 2)
-
-            return crop_box
+            return (0, diff // 2 , iw, ih - diff // 2)
 
         elif self.image_ratio > self.format_ratio:
             # image wider than format
