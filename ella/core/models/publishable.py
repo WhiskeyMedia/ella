@@ -201,6 +201,9 @@ class Publishable(models.Model):
         if not self.last_updated:
             self.last_updated = self.publish_from
 
+        if not self.sort_order:
+            self.sort_order = self.publish_from
+
         super(Publishable, self).save(**kwargs)
 
         if send_signal:
