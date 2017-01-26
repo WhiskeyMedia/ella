@@ -74,6 +74,8 @@ class Publishable(models.Model):
     # has the content_published signal been sent for this instance?
     announced = models.BooleanField(help_text='Publish signal sent', default=False, editable=False)
 
+    sort_order = models.DateTimeField(_("Sort Order"), null=True, blank=True)
+
     objects = PublishableManager()
 
     class Meta:
@@ -198,6 +200,9 @@ class Publishable(models.Model):
 
         if not self.last_updated:
             self.last_updated = self.publish_from
+
+        if not self.sort_order:
+            self.sort_order = self.publish_from
 
         super(Publishable, self).save(**kwargs)
 
