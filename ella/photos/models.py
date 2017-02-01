@@ -398,7 +398,15 @@ class FormatedPhoto(models.Model):
         imgf = (self.photo._get_image().format or
                 Image.EXTENSION[path.splitext(self.photo.image.name)[1]])
 
-        stretched_photo.save(f, format=imgf, quality=self.format.resample_quality)
+        save_options = {
+            'format': imgf,
+            'quality': self.format.resample_quality
+        }
+        icc_profile = self.photo._get_image().info.get('icc_profile')
+        if icc_profile:
+            save_options['icc_profile'] = icc_profile
+
+        stretched_photo.save(f, **save_options)
         f.seek(0)
 
         self.image.save(self.file(), ContentFile(f.read()), save)
