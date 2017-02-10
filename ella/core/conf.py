@@ -1,6 +1,7 @@
 from ella.utils.settings import Settings
 from ella.utils.timezone import utc_localize
 from django.utils.datetime_safe import datetime
+from django.conf import settings
 
 gettext = lambda s: s
 
@@ -18,7 +19,7 @@ BOX_INFO = 'ella.core.box.BOX_INFO'
 MEDIA_KEY = 'ella.core.box.MEDIA_KEY'
 
 # Publishing configuration
-CATEGORY_LISTINGS_PAGINATE_BY = 20
+CATEGORY_LISTINGS_PAGINATE_BY = getattr(settings, 'CATEGORY_LISTINGS_PAGINATE_BY', 20)
 CATEGORY_LISTINGS_ON_FIRST_PAGE = CATEGORY_LISTINGS_PAGINATE_BY
 CATEGORY_NO_HOME_LISTINGS = False
 PUBLISH_FROM_WHEN_EMPTY = utc_localize(datetime(3000, 1, 1))
