@@ -124,7 +124,6 @@ class Formatter(object):
         # move the crop_box
         return (cl + move_horiz, ct + move_verti, cr + move_horiz, cb + move_verti)
 
-
     def crop_to_ratio(self):
         " Get crop coordinates and perform the crop if we get any. "
         crop_box = self.get_crop_box()
@@ -172,11 +171,9 @@ class Formatter(object):
         if self.image_ratio == self.format_ratio:
             # same ratio, just resize
             return (self.fw, self.fh)
-
         elif self.image_ratio < self.format_ratio:
             # image taller than format
             return (self.fh * iw / ih, self.fh)
-
         else: # self.image_ratio > self.format_ratio
             # image wider than format
             return (self.fw, self.fw * ih / iw)
@@ -192,3 +189,31 @@ class Formatter(object):
 
         self.image = self.image.resize(resized_size, Image.ANTIALIAS)
 
+
+class GIFFormatter(Formatter):
+    def format(self):
+        " Crop and resize the supplied image. Return the image and the crop_box used. "
+        crop_box = self.crop_to_ratio()
+        self.resize()
+        return self.image, crop_box
+
+    def crop_to_ratio(self):
+        " Get crop coordinates and perform the crop if we get any. "
+        crop_box = self.get_crop_box()
+        if not crop_box:
+            return
+
+        left, top, right, bottom = self.center_important_part(crop_box)
+        self.image.crop(left=left, top=top, right=right, bottom=bottom)
+        return crop_box
+
+    def resize(self):
+        """
+        Get target size for a cropped image and do the resizing if we got
+        anything usable.
+        """
+        resized_size = self.get_resized_size()
+        if not resized_size:
+            return
+
+        self.image.resize(*resized_size)
