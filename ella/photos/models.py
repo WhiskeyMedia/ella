@@ -106,8 +106,10 @@ class Photo(models.Model):
         }
 
     def get_image_fmt(self):
-        return (self._get_image().format or
-                Image.EXTENSION[path.splitext(self.image.name)[1]])
+        fmt = self._get_image().format or Image.EXTENSION[path.splitext(self.image.name)[1]]
+        if fmt:
+            fmt = fmt.upper()
+        return fmt
 
     def _get_image(self):
         if not hasattr(self, '_pil_image'):
@@ -366,7 +368,7 @@ class FormatedPhoto(models.Model):
         if self.photo.important_top is not None:
             p = self.photo
             important_box = (p.important_left, p.important_top, p.important_right, p.important_bottom)
-        is_gif = self.photo.get_image_fmt().upper() == 'GIF'
+        is_gif = self.photo.get_image_fmt() == 'GIF'
         image = None
         if crop_box is None and self.format.master_id:
             try:
@@ -406,7 +408,7 @@ class FormatedPhoto(models.Model):
         f = StringIO()
         imgf = self.photo.get_image_fmt()
 
-        if imgf.upper() != 'GIF':
+        if imgf != 'GIF':
             save_options = {
                 'format': imgf,
                 'quality': self.format.resample_quality
