@@ -203,7 +203,13 @@ class GIFFormatter(Formatter):
         if not crop_box:
             return
 
+        iw, ih = self.image.size
         left, top, right, bottom = self.center_important_part(crop_box)
+        left = max(0, left)
+        right = min(iw, right)
+        top = max(0, top)
+        bottom = min(ih, bottom)
+
         self.image.crop(left=left, top=top, right=right, bottom=bottom)
         return crop_box
 
