@@ -3,6 +3,7 @@ from PIL import Image
 
 from ella.photos.conf import photos_settings
 
+
 class Formatter(object):
     def __init__(self, image, format, crop_box=None, important_box=None):
         self.image = image
@@ -19,7 +20,9 @@ class Formatter(object):
         self.image_ratio = float(iw) / ih
 
     def format(self):
-        " Crop and resize the supplied image. Return the image and the crop_box used. "
+        """
+        Crop and resize the supplied image. Return the image and the crop_box used.
+        """
         crop_box = self.crop_to_ratio()
         self.resize()
         return self.image, crop_box
@@ -53,7 +56,6 @@ class Formatter(object):
         # check if the flexible height option is active and applies
         self.set_format()
 
-
         if self.fmt.nocrop:
             # cropping not allowed
             return
@@ -77,16 +79,16 @@ class Formatter(object):
                 import importlib
                 app_functions = importlib.import_module(DISTILLERY_PREVIEW_MODULE)
                 return getattr(app_functions, DISTILLERY_DEFAULT_PORTRAIT_CROPBOX_FUNCTION)(iw, ih, self.fw,
-                                                                                                self.fh)
+                                                                                            self.fh)
 
             # image taller than format
             diff = ih - (iw * self.fh / self.fw)
-            return (0, diff // 2 , iw, ih - diff // 2)
+            return 0, diff // 2, iw, ih - diff // 2
 
         elif self.image_ratio > self.format_ratio:
             # image wider than format
             diff = iw - (ih * self.fw / self.fh)
-            return (diff // 2, 0, iw - diff // 2, ih)
+            return diff // 2, 0, iw - diff // 2, ih
 
         else:
             # same ratio as format
@@ -109,23 +111,25 @@ class Formatter(object):
         move_verti = (ib[1] + ib[3]) // 2 - (ct + cb) // 2
 
         # make sure we don't get out of the image
-        # ... horizontaly
+        # ... horizontally
         if move_horiz > 0:
             move_horiz = min(iw - cr, move_horiz)
         else:
             move_horiz = max(-cl, move_horiz)
 
-        # .. and verticaly
+        # .. and vertically
         if move_verti > 0:
             move_verti = min(ih - cb, move_verti)
         else:
             move_verti = max(-ct, move_verti)
 
         # move the crop_box
-        return (cl + move_horiz, ct + move_verti, cr + move_horiz, cb + move_verti)
+        return cl + move_horiz, ct + move_verti, cr + move_horiz, cb + move_verti
 
     def crop_to_ratio(self):
-        " Get crop coordinates and perform the crop if we get any. "
+        """
+        Get crop coordinates and perform the crop if we get any.
+        """
         crop_box = self.get_crop_box()
 
         if not crop_box:
@@ -170,13 +174,13 @@ class Formatter(object):
 
         if self.image_ratio == self.format_ratio:
             # same ratio, just resize
-            return (self.fw, self.fh)
+            return self.fw, self.fh
         elif self.image_ratio < self.format_ratio:
             # image taller than format
-            return (self.fh * iw / ih, self.fh)
+            return self.fh * iw / ih, self.fh
         else: # self.image_ratio > self.format_ratio
             # image wider than format
-            return (self.fw, self.fw * ih / iw)
+            return self.fw, self.fw * ih / iw
 
     def resize(self):
         """
@@ -191,14 +195,10 @@ class Formatter(object):
 
 
 class GIFFormatter(Formatter):
-    def format(self):
-        " Crop and resize the supplied image. Return the image and the crop_box used. "
-        crop_box = self.crop_to_ratio()
-        self.resize()
-        return self.image, crop_box
-
     def crop_to_ratio(self):
-        " Get crop coordinates and perform the crop if we get any. "
+        """
+        Get crop coordinates and perform the crop if we get any.
+        """
         crop_box = self.get_crop_box()
         if not crop_box:
             return

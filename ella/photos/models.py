@@ -4,7 +4,6 @@ from wand.image import Image as WandImage
 from os import path
 from cStringIO import StringIO
 import os.path
-import string
 
 from django.db import models
 from django.db.models import signals
@@ -377,14 +376,15 @@ class FormatedPhoto(models.Model):
             except FormatedPhoto.DoesNotExist:
                 pass
 
-        if image is None:
-            if is_gif:
+        if is_gif:
+            if image is None:
                 self.photo.image.file.seek(0)
                 image = WandImage(file=self.photo.image.file)
-                formatter = GIFFormatter(image, self.format, crop_box=crop_box, important_box=important_box)
-            else:
+            formatter = GIFFormatter(image, self.format, crop_box=crop_box, important_box=important_box)
+        else:
+            if image is None:
                 image = self.photo._get_image()
-                formatter = Formatter(image, self.format, crop_box=crop_box, important_box=important_box)
+            formatter = Formatter(image, self.format, crop_box=crop_box, important_box=important_box)
         return formatter.format()
 
     def generate(self, save=True):
