@@ -16,7 +16,7 @@ from ella.core.conf import core_settings
 from ella.core.managers import ListingManager, RelatedManager, \
     PublishableManager
 from ella.core.models.main import Author, Source
-from ella.core.signals import content_published, content_unpublished
+from ella.core.signals import content_published, content_unpublished, content_modified
 from ella.utils.timezone import now, localize
 
 
@@ -205,9 +205,10 @@ class Publishable(models.Model):
             self.sort_order = self.publish_from
 
         super(Publishable, self).save(**kwargs)
-
         if send_signal:
             send_signal.send(sender=self.__class__, publishable=self)
+        
+        content_modified.send(sender=self.__class__, publishable=self)
 
     def delete(self):
         url = self.get_absolute_url()

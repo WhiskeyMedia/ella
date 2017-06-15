@@ -6,6 +6,9 @@ content_published = Signal(providing_args=['publishable'])
 # and when it's taken down
 content_unpublished = Signal(providing_args=['publishable'])
 
+# content had a modification
+content_modified = Signal(providing_args=['publishable'])
+
 # category or publishable is about to be rendered
 object_rendering = Signal(providing_args=['request', 'category', 'publishable'])
 
