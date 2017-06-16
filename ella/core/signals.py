@@ -14,3 +14,4 @@ object_rendering = Signal(providing_args=['request', 'category', 'publishable'])
 
 # category or publishable was rendered
 object_rendered = Signal(providing_args=['request', 'category', 'publishable'])
+
