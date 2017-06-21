@@ -1,9 +1,9 @@
 import logging
 from PIL import Image
+from wand.image import Image as WandImage
 from os import path
 from cStringIO import StringIO
 import os.path
-import string
 
 from django.db import models
 from django.db.models import signals
@@ -21,7 +21,7 @@ from ella.core.cache.utils import get_cached_object
 from ella.photos.conf import photos_settings
 from ella.utils.timezone import now
 
-from formatter import Formatter
+from formatter import Formatter, GIFFormatter
 
 from .settings import DELETE_FORMATTED_PHOTOS_ON_FORMAT_SAVE
 
@@ -103,6 +103,12 @@ class Photo(models.Model):
             'width': self.width,
             'height': self.height,
         }
+
+    def get_image_fmt(self):
+        fmt = self._get_image().format or Image.EXTENSION[path.splitext(self.image.name)[1]]
+        if fmt:
+            fmt = fmt.upper()
+        return fmt
 
     def _get_image(self):
         if not hasattr(self, '_pil_image'):
@@ -361,7 +367,7 @@ class FormatedPhoto(models.Model):
         if self.photo.important_top is not None:
             p = self.photo
             important_box = (p.important_left, p.important_top, p.important_right, p.important_bottom)
-
+        is_gif = self.photo.get_image_fmt() == 'GIF'
         image = None
         if crop_box is None and self.format.master_id:
             try:
@@ -370,10 +376,15 @@ class FormatedPhoto(models.Model):
             except FormatedPhoto.DoesNotExist:
                 pass
 
-        if image is None:
-            image = self.photo._get_image()
-        formatter = Formatter(image, self.format, crop_box=crop_box, important_box=important_box)
-
+        if is_gif:
+            if image is None:
+                self.photo.image.file.seek(0)
+                image = WandImage(file=self.photo.image.file)
+            formatter = GIFFormatter(image, self.format, crop_box=crop_box, important_box=important_box)
+        else:
+            if image is None:
+                image = self.photo._get_image()
+            formatter = Formatter(image, self.format, crop_box=crop_box, important_box=important_box)
         return formatter.format()
 
     def generate(self, save=True):
@@ -395,18 +406,20 @@ class FormatedPhoto(models.Model):
         self.width, self.height = stretched_photo.size
 
         f = StringIO()
-        imgf = (self.photo._get_image().format or
-                Image.EXTENSION[path.splitext(self.photo.image.name)[1]])
+        imgf = self.photo.get_image_fmt()
 
-        save_options = {
-            'format': imgf,
-            'quality': self.format.resample_quality
-        }
-        icc_profile = self.photo._get_image().info.get('icc_profile')
-        if icc_profile:
-            save_options['icc_profile'] = icc_profile
+        if imgf != 'GIF':
+            save_options = {
+                'format': imgf,
+                'quality': self.format.resample_quality
+            }
+            icc_profile = self.photo._get_image().info.get('icc_profile')
+            if icc_profile:
+                save_options['icc_profile'] = icc_profile
 
-        stretched_photo.save(f, **save_options)
+            stretched_photo.save(f, **save_options)
+        else:
+            stretched_photo.save(file=f)
         f.seek(0)
 
         self.image.save(self.file(), ContentFile(f.read()), save)

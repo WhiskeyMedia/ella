@@ -6,6 +6,7 @@ install_requires = [
     'Django<1.7',
     'south>=0.7',
     'Pillow',
+    'Wand==0.4.4',
     'pytz',
     'feedparser',
     'redis',
